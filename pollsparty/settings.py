@@ -27,8 +27,8 @@ SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-#polls-party-api.herokuapp.com (antigo allowed hosts)
-ALLOWED_HOSTS = ["*"]
+
+ALLOWED_HOSTS = ["http://localhost:3000","polls-party-api.herokuapp.com"]
 
 
 # Application definition
