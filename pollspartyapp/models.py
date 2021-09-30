@@ -1,11 +1,17 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
+
+
+
+
+class PollUser(AbstractUser):
+    email = models.EmailField(blank=False,unique=True)
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -20,7 +26,7 @@ class Poll(models.Model):
     protect = models.BooleanField(default=False)
     expires_in = models.IntegerField(null=True) 
 
-    user = models.ForeignKey(User,related_name='polls',on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,related_name='polls',on_delete=models.CASCADE)
 
 
 class Option(models.Model):

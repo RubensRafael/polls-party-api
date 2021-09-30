@@ -1,13 +1,14 @@
 from django.http import JsonResponse
-from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from pollspartyapp.models import Poll,Option,ControlField,PollToken
+from pollspartyapp.models import Poll,Option,ControlField,PollToken, PollUser
 from pollspartyapp.serializers import PollSerializer, OptionSerializer
 from pollspartyapp.logic import CreatePollToken, HandleTokenExpired
 from datetime import timedelta
+
+
 
 # Views que só podem ser chamadas por usuários cadastrados tem "Auth", no nome.
 class PollAuth(APIView):
@@ -134,20 +135,25 @@ class CreateUser(APIView):
 	def post(self,request):
 		data = request.data
 		try:
-			user = User(username=data['username'],email=data['email'])
+			user = PollUser(username=data['username'],email=data['email'])
 			user.set_password(data['password'])
 			user.save()
 			return JsonResponse({}, status=201)
-		except:
-			return JsonResponse({}, status=500)
+		except Exception as e:
+			error = str(e).split(':')[1]
+			key = error.split('=')[0].split('(')[1][:-1]
+			problem = error.split('=')[1].split(')')[1][:-1]
+
+			
+			return JsonResponse({'error':key + problem}, status=400)
 
 class VerifEmail(APIView):
-	authentication_classes = [TokenAuthentication]
+	"""authentication_classes = [TokenAuthentication]
 	permission_classes = [IsAuthenticated,IsAdminUser]
 
 	def post(self,request):
 		email = User.objects.filter(email=request.data['email']).exists()
 		username = User.objects.filter(email=request.data['username']).exists()
-		data = {'email':email,'username':username}
-		return JsonResponse(data,status=200)
+		data = {'email':email,'username':username}return JsonResponse(data,status=200)"""
+	
 		
