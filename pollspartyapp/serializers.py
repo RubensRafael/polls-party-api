@@ -47,4 +47,4 @@ class PollSerializer(serializers.ModelSerializer):
 	token = TokenSerializer(read_only=True)
 	class Meta:
 		model = Poll
-		fields = ['id','question', 'total_votes', 'options','expires_in','token']
+		fields = ['id','question', 'total_votes', 'options','expires_in','token','protect']
