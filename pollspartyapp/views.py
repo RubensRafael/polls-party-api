@@ -20,33 +20,52 @@ class PollAuth(APIView):
 
 			data = request.data #Pega os dados
 
-			poll = Poll.objects.create(question=data['question'],user=request.user)#Cria a poll
+			try:
+				poll = Poll.objects.create(question=data['question'],user=request.user)#Cria a poll
 
-			if data['config']['protect'] == True: #Verifica se a poll vai ser protegida(ou controlada)
-				poll.protect = True
-				poll.save()
+				for option in data['options']:#cria as opções de resposta
+					Option.objects.create(answer=data['options'][option],poll=poll)
+			except KeyError:
+				return JsonResponse({'error':"The fields: 'question' and 'options' are required."}, status=400)
 
-			if data['config']['time'] != False: #Verifica se a poll tem tempo para expirar, se sim instaura o tempo necessário.
+
+			try:
+				if data['config']['protect'] == True: #Verifica se a poll vai ser protegida(ou controlada)
+					poll.protect = True
+					poll.save()
+			except KeyError:
+				pass	
+
+			try:
+				 #Verifica se a poll tem tempo para expirar, se sim instaura o tempo necessário.
+				if data['config']['time'] != False:
+					poll.expires_in = data['config']['time']
+					poll.save()
+			except KeyError:
+				pass
+
+
+			#Adiciona opções com todas as alternativas, ou nenhuma alternativa.
+			try:
+				if data['config']['all_options']:
+					Option.objects.create(answer='All Options',poll=poll)
+			except KeyError:
+				pass
+			try:
+
+				if data['config']['no_option']:
+					Option.objects.create(answer='No Option',poll=poll)
+
+			except KeyError:	
+				pass
+
+
+			token = CreatePollToken()
+			while PollToken.objects.filter(token=token).exists():
 				token = CreatePollToken()
-				while PollToken.objects.filter(token=token).exists():
-					token = CreatePollToken()
 
+			PollToken.objects.create(token=token,poll=poll)
 
-				PollToken.objects.create(token=token,poll=poll)
-				poll.expires_in = data['config']['time']
-				poll.save()
-			else:
-				token = CreatePollToken()
-				PollToken.objects.create(token=token,poll=poll)
-
-							
-			for option in data['options']:#cria as opções de resposta
-				Option.objects.create(answer=data['options'][option],poll=poll)
-									
-			if data['config']['all_options']:#Adiciona opções com todas as alternativas, ou nenhuma alternativa.
-				Option.objects.create(answer='All Options',poll=poll)
-			elif data['config']['any_options']:
-				Option.objects.create(answer='Any Option',poll=poll)
 
 			serializer = PollSerializer(instance=poll)
 			return JsonResponse(serializer.data,status=200,safe=False)
@@ -55,6 +74,16 @@ class PollAuth(APIView):
 
 		polls_query = Poll.objects.filter(user=request.user)#Procura todas as polls criadas pelo usuário	
 		
+		
+		for poll in polls_query:
+			if poll.expires_in == None:
+				pass
+			elif  timezone.now() - poll.token.time > timedelta(hours=poll.expires_in) and request.user == poll.user:
+				HandleTokenExpired(poll)
+			else:
+				pass
+
+
 
 		if params == 'all':#se o parametro "all" estiver na url, envia todas as informções de cada poll.
 			serializer = serializer = PollSerializer(polls_query,many=True)
@@ -66,48 +95,10 @@ class PollAuth(APIView):
 
 		return JsonResponse(serializer.data,status=200,safe=False)
 
-class PollUnAuth(APIView):
+#Duas funções auxiliares para as proximas duas Views
 
-
-	def post(self,request,info,params):
-		data = request.data
-		poll = Poll.objects.get(options__pk=data.get('id'))
-
-		if poll.protect:
-			option = Option.objects.get(pk=data.get('id'))
-			control = ControlField.objects.create(control_field=data['control_field'],option=option)
-			option.votes += 1
-			option.save()
-			poll.total_votes +=1
-			poll.save()
-			serializer = PollSerializer(instance=poll)
-			return JsonResponse(serializer.data,status=200,safe=False)
-		else:
-			option = Option.objects.get(pk=data.get('id'))
-			option.votes += 1
-			option.save()
-			poll.total_votes +=1
-			poll.save()			
-			serializer = PollSerializer(instance=poll)
-			return JsonResponse(serializer.data,status=200,safe=False)	
-
-	def get(self,request,info,params):
-
-		if PollToken.objects.filter(token=info).exists():
-			poll = Poll.objects.get(token__token=info)
-			if poll.expires_in == None:
-				pass
-			elif  timezone.now() - poll.token.time > timedelta(hours=poll.expires_in) and request.user == poll.user:
-				new_token = HandleTokenExpired(poll)
-				return JsonResponse({'error':'Token expired','new_token':new_token.token},status=400)
-			elif timezone.now() - poll.token.time > timedelta(hours=poll.expires_in) and request.user != poll.user:
-				HandleTokenExpired(poll)
-				return JsonResponse({'error':'Token invalid or expired'},status=400)
-			else:
-				pass
-		else:
-			return JsonResponse({'error':'Token invalid or expired'},status=404)
-
+#Retorna os paramentros de url especificos, e (caso logado) dá informações adicionais
+def PollsParametersUnAuth(params,poll,request):
 
 		if params == 'all':
 			poll_serializer = PollSerializer(instance=poll)
@@ -123,6 +114,81 @@ class PollUnAuth(APIView):
 		else:
 			return JsonResponse(poll_serializer.data,status=200)
 
+#Verifica se o token espirou e atualiza
+def PollTokenVerif(info,request):
+	
+	if PollToken.objects.filter(token=info).exists():
+		poll = Poll.objects.get(token__token=info)
+		if poll.expires_in == None:
+			return poll
+		elif  timezone.now() - poll.token.time > timedelta(hours=poll.expires_in) and request.user == poll.user:
+			new_token = HandleTokenExpired(poll)
+			return JsonResponse({'error':'Token expired','new_token':new_token.token},status=400)
+		elif timezone.now() - poll.token.time > timedelta(hours=poll.expires_in) and request.user != poll.user:
+			HandleTokenExpired(poll)
+			return JsonResponse({'error':'Token invalid or expired'},status=404)
+		else:
+			return poll
+	else:
+		return JsonResponse({'error':'Token invalid or expired'},status=404)
+
+class PollUnAuth(APIView):
+
+
+	def post(self,request,info,params):
+		data = request.data
+
+		try:
+			verif_retorno = PollTokenVerif(data['token'],request)
+
+			if type(verif_retorno) == type(JsonResponse({})):
+				return verif_retorno
+			else:
+				pass
+		except KeyError:
+			return JsonResponse({'error':"The field: 'token' is required."},status=400,safe=False)
+
+		try:
+			poll = Poll.objects.get(options__pk=data['id'])
+		except KeyError:
+			return JsonResponse({'error':"The field: 'id' is required."},status=400,safe=False)
+		except Poll.DoesNotExist:
+			return JsonResponse({'error':"No option could be find with this 'id' value."},status=400,safe=False)
+
+
+		if verif_retorno != poll:
+			return JsonResponse({"error":"Option 'id' and Poll 'token' does not matches."})
+
+		if poll.protect:
+			option = Option.objects.get(pk=data['id'])
+			try:
+				control = ControlField.objects.create(control_field=data['control_field'],option=option)
+			except KeyError:
+				return JsonResponse({'error':"The field: 'control_field' is required on protect polls."},status=400,safe=False)
+			option.votes += 1
+			option.save()
+			poll.total_votes +=1
+			poll.save()
+			return PollsParametersUnAuth(params,poll,request)
+		else:
+			option = Option.objects.get(pk=data['id'])
+			option.votes += 1
+			option.save()
+			poll.total_votes +=1
+			poll.save()			
+			return PollsParametersUnAuth(params,poll,request)
+
+
+	def get(self,request,info,params):
+
+		verif_retorno = PollTokenVerif(info,request)
+
+		if type(verif_retorno) == type(JsonResponse({})):
+			return verif
+		else:
+			pass
+
+		return PollsParametersUnAuth(params,verif_retorno,request)
 				
 
 		
