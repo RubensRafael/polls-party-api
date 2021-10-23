@@ -184,7 +184,7 @@ class PollUnAuth(APIView):
 		verif_retorno = PollTokenVerif(info,request)
 
 		if type(verif_retorno) == type(JsonResponse({})):
-			return verif
+			return verif_retorno
 		else:
 			pass
 
