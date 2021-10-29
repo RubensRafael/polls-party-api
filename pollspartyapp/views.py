@@ -108,7 +108,7 @@ def PollsParametersUnAuth(params,poll,request):
 
 		if request.user == poll.user:
 			options = Option.objects.filter(poll=poll)
-			options_serializer = OptionSerializer(options,many=True,fields=('id','controllers'))
+			options_serializer = OptionSerializer(options,many=True,fields=('answer', 'votes','controllers'))
 			data = {'poll':poll_serializer.data,'insights':options_serializer.data}
 			return JsonResponse(data,status=200)
 		else:
