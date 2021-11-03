@@ -19,9 +19,60 @@ Basically, after creating a poll, you will be able to implement it on your websi
 (separated by '-')
 
 At least one of them is mandatory, if you want to receive everything, just type 'all', the json object is more or less like this, depending on the conditions:
-
-
-
+```
+  {
+    "poll":{
+        "id":43,
+        "question":"question",
+        "total_votes":4,
+        "options":[
+            {
+                "answer":"answer 1",
+                "votes":2,
+                "id":54
+            },
+            {
+                "answer":"answer 2",
+                "votes":2,
+                "id":55
+            }
+        ],
+        "expires_in":null,
+        "token":{
+            "token":"XXXXXX"
+        },
+        "protect":false
+    },
+    "insights":[
+        {
+            "answer":"answer 1",
+            "votes":2,
+            "id":54,
+            "controllers":[
+                {
+                    "control_field":"value"
+                },
+                {
+                    "control_field":"value"
+                }
+            ]
+        },
+        {
+            "answer":"answer 2",
+            "votes":2,
+            "id":55,
+            "controllers":[
+                {
+                    "control_field":"value"
+                },
+                {
+                    "control_field":"value"
+                }
+            ]
+        }
+    ]
+}
+```
 
 ## GET: https://polls-party-api.herokuapp.com/polls/[code]/[params]
 
@@ -55,3 +106,36 @@ The body of the request should look like this:
 The first two are mandatory, the third is only if your vote requires a controlfield, with it you'll have a way to identify users with an input in your application (if you have some kind of validation, like regex, we don't care about that , we're just waiting for a string.)
 
 You can access the insights on our website, but if you want to display it in some way, it comes with this structure:
+
+```
+"insights":[
+        {
+            "answer":"answer 1",
+            "votes":2,
+            "id":54,
+            "controllers":[
+                {
+                    "control_field":"value"
+                },
+                {
+                    "control_field":"value"
+                }
+            ]
+        },
+        {
+            "answer":"answer 2",
+            "votes":2,
+            "id":55,
+            "controllers":[
+                {
+                    "control_field":"value"
+                },
+                {
+                    "control_field":"value"
+                }
+            ]
+        }
+    ]
+```
+
+
