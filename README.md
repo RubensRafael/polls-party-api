@@ -1,7 +1,7 @@
 # polls-party-api
 
 
-Welcome to the Polls Party API documentation, to use our services you just need to login to the site with your account (or create one, if you don't already have one) click on the icon at the bottom of the screen and get your api key.
+Welcome to the Polls Party API documentation, used in [Polls Party](https://polls-party.vercel.app/) site. To use our services you just need to login to the site with your account (or create one, if you don't already have one) click on the icon at the bottom of the screen and get your api key.
 
 In all requests we need the 'Authentication' header and its value must be: 'Token' + '[whitespace]' + (your api token).
 
