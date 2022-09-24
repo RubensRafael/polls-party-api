@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,7 +27,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["localhost","polls-party-api.herokuapp.com"]
+ALLOWED_HOSTS = ["localhost","polls-party-api.herokuapp.com", '127.0.0.1']
 
 
 # Application definition
@@ -97,22 +96,20 @@ DATABASES = {
 
     'default': {
 
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ['DB_NAME'],
 
-        'NAME': 'postgres',
+        'USER': os.environ['DB_USER'],
 
-        'USER': 'postgres',
+        'PASSWORD': os.environ['DB_PASSWORD'],
 
-        'PASSWORD': '',
-
-        'HOST': 'localhost',
+        'HOST': os.environ['DB_HOST'],
 
         'PORT': '5432',
 
     }
 
 }
-DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
